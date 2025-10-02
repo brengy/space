@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Journey</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const canvas = document.getElementById('c');
+        const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+        
+        camera.position.set(0, 100, 0);
+        
+        // Create massive starfield with depth
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 20000;
+        const positions = new Float32Array(starCount * 3);
+        const colors = new Float32Array(starCount * 3);
+        const sizes = new Float32Array(starCount);
+        
+        for (let i = 0; i < starCount; i++) {
+            const i3 = i * 3;
+            positions[i3] = (Math.random() - 0.5) * 10000;
+            positions[i3 + 1] = (Math.random() - 0.5) * 10000;
+            positions[i3 + 2] = (Math.random() - 0.5) * 10000;
+            
+            const temp = Math.random();
+            if (temp > 0.85) {
+                colors[i3] = 0.5 + Math.random() * 0.5;
+                colors[i3 + 1] = 0.6 + Math.random() * 0.4;
+                colors[i3 + 2] = 1.0;
+            } else if (temp > 0.7) {
+                colors[i3] = 1.0;
+                colors[i3 + 1] = 0.4 + Math.random() * 0.3;
+                colors[i3 + 2] = 0.2;
+            } else if (temp > 0.6) {
+                colors[i3] = 1.0;
+                colors[i3 + 1] = 0.9 + Math.random() * 0.1;
+                colors[i3 + 2] = 0.6 + Math.random() * 0.3;
+            } else {
+                colors[i3] = 1.0;
+                colors[i3 + 1] = 1.0;
+                colors[i3 + 2] = 1.0;
+            }
+            
+            sizes[i] = Math.random() * 3 + 0.5;
+        }
+        
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        
+        const starMaterial = new THREE.PointsMaterial({
+            size: 2.5,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.95,
+            sizeAttenuation: true
+        });
+        
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+        
+        // Create planets at different positions
+        const planets = [];
+        
+        // Jupiter-like gas giant
+        const jupiterGeo = new THREE.SphereGeometry(80, 64, 64);
+        const jupiterTex = createJupiterTexture();
+        const jupiterMat = new THREE.MeshPhongMaterial({map: jupiterTex});
+        const jupiter = new THREE.Mesh(jupiterGeo, jupiterMat);
+        jupiter.position.set(1200, -200, -800);
+        scene.add(jupiter);
+        planets.push(jupiter);
+        
+        // Saturn-like planet with rings
+        const saturnGeo = new THREE.SphereGeometry(70, 64, 64);
+        const saturnTex = createSaturnTexture();
+        const saturnMat = new THREE.MeshPhongMaterial({map: saturnTex});
+        const saturn = new THREE.Mesh(saturnGeo, saturnMat);
+        saturn.position.set(-1500, 300, 1200);
+        scene.add(saturn);
+        planets.push(saturn);
+        
+        // Saturn rings
+        const ringGeo = new THREE.RingGeometry(90, 140, 64);
+        const ringTex = createRingTexture();
+        const ringMat = new THREE.MeshBasicMaterial({
+            map: ringTex,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.8
+        });
+        const rings = new THREE.Mesh(ringGeo, ringMat);
+        rings.rotation.x = Math.PI / 2.3;
+        saturn.add(rings);
+        
+        // Mars-like red planet
+        const marsGeo = new THREE.SphereGeometry(35, 48, 48);
+        const marsTex = createMarsTexture();
+        const marsMat = new THREE.MeshPhongMaterial({map: marsTex});
+        const mars = new THREE.Mesh(marsGeo, marsMat);
+        mars.position.set(800, 150, 600);
+        scene.add(mars);
+        planets.push(mars);
+        
+        // Ice planet (Neptune-like)
+        const iceGeo = new THREE.SphereGeometry(55, 48, 48);
+        const iceTex = createIcePlanetTexture();
+        const iceMat = new THREE.MeshPhongMaterial({map: iceTex});
+        const icePlanet = new THREE.Mesh(iceGeo, iceMat);
+        icePlanet.position.set(-900, -400, -1500);
+        scene.add(icePlanet);
+        planets.push(icePlanet);
+        
+        // Purple alien planet
+        const alienGeo = new THREE.SphereGeometry(45, 48, 48);
+        const alienTex = createAlienPlanetTexture();
+        const alienMat = new THREE.MeshPhongMaterial({map: alienTex});
+        const alienPlanet = new THREE.Mesh(alienGeo, alienMat);
+        alienPlanet.position.set(1800, 100, 400);
+        scene.add(alienPlanet);
+        planets.push(alienPlanet);
+        
+        // Rocky moon
+        const moonGeo = new THREE.SphereGeometry(25, 32, 32);
+        const moonTex = createMoonTexture();
+        const moonMat = new THREE.MeshPhongMaterial({map: moonTex});
+        const moon = new THREE.Mesh(moonGeo, moonMat);
+        moon.position.set(-600, 50, 300);
+        scene.add(moon);
+        planets.push(moon);
+        
+        // Create asteroid belt
+        const asteroids = [];
+        for (let i = 0; i < 200; i++) {
+            const size = Math.random() * 5 + 2;
+            const astGeo = new THREE.DodecahedronGeometry(size, 0);
+            const astMat = new THREE.MeshPhongMaterial({
+                color: 0x666666,
+                flatShading: true
+            });
+            const asteroid = new THREE.Mesh(astGeo, astMat);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 400 + Math.random() * 200;
+            asteroid.position.set(
+                Math.cos(angle) * radius + 2000,
+                (Math.random() - 0.5) * 100,
+                Math.sin(angle) * radius - 1000
+            );
+            
+            asteroid.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            
+            scene.add(asteroid);
+            asteroids.push(asteroid);
+        }
+        
+        // Nebula clouds
+        for (let i = 0; i < 5; i++) {
+            const nebulaGeo = new THREE.SphereGeometry(200, 16, 16);
+            const nebulaMat = new THREE.MeshBasicMaterial({
+                color: i % 2 === 0 ? 0xff3366 : 0x3366ff,
+                transparent: true,
+                opacity: 0.05,
+                side: THREE.BackSide
+            });
+            const nebula = new THREE.Mesh(nebulaGeo, nebulaMat);
+            nebula.position.set(
+                (Math.random() - 0.5) * 3000,
+                (Math.random() - 0.5) * 1000,
+                (Math.random() - 0.5) * 3000
+            );
+            scene.add(nebula);
+        }
+        
+        // Lighting
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(1000, 500, 1000);
+        scene.add(sunLight);
+        
+        const sunLight2 = new THREE.DirectionalLight(0xffddaa, 0.6);
+        sunLight2.position.set(-1000, -300, -500);
+        scene.add(sunLight2);
+        
+        const ambientLight = new THREE.AmbientLight(0x222244);
+        scene.add(ambientLight);
+        
+        let time = 0;
+        
+        function createJupiterTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, '#d4a574');
+            gradient.addColorStop(0.3, '#c89968');
+            gradient.addColorStop(0.5, '#a67c52');
+            gradient.addColorStop(0.7, '#c89968');
+            gradient.addColorStop(1, '#d4a574');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            ctx.strokeStyle = '#8b6f47';
+            ctx.lineWidth = 8;
+            for (let i = 0; i < 20; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * size / 20 + Math.sin(i) * 20);
+                ctx.lineTo(size, i * size / 20 + Math.cos(i) * 20);
+                ctx.stroke();
+            }
+            
+            ctx.fillStyle = '#d88060';
+            ctx.beginPath();
+            ctx.ellipse(350, 280, 60, 40, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createSaturnTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, '#f4d8a8');
+            gradient.addColorStop(0.5, '#e8c89c');
+            gradient.addColorStop(1, '#f4d8a8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createRingTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createRadialGradient(size/2, size/2, 100, size/2, size/2, size/2);
+            gradient.addColorStop(0, 'rgba(200, 180, 150, 0)');
+            gradient.addColorStop(0.3, 'rgba(200, 180, 150, 0.9)');
+            gradient.addColorStop(0.5, 'rgba(180, 160, 130, 0.7)');
+            gradient.addColorStop(0.7, 'rgba(200, 180, 150, 0.9)');
+            gradient.addColorStop(1, 'rgba(200, 180, 150, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createMarsTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#cd5c5c';
+            ctx.fillRect(0, 0, size, size);
+            
+            ctx.fillStyle = '#8b3a3a';
+            for (let i = 0; i < 100; i++) {
+                ctx.fillRect(Math.random() * size, Math.random() * size, 
+                    Math.random() * 20 + 5, Math.random() * 20 + 5);
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createIcePlanetTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#4a90e2';
+            ctx.fillRect(0, 0, size, size);
+            
+            ctx.fillStyle = '#6ba3e8';
+            for (let i = 0; i < 80; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * size, Math.random() * size, 
+                    Math.random() * 30 + 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createAlienPlanetTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#8b4789';
+            ctx.fillRect(0, 0, size, size);
+            
+            ctx.fillStyle = '#a855a8';
+            for (let i = 0; i < 60; i++) {
+                ctx.fillRect(Math.random() * size, Math.random() * size, 
+                    Math.random() * 25 + 8, Math.random() * 25 + 8);
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createMoonTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#8a8a8a';
+            ctx.fillRect(0, 0, size, size);
+            
+            ctx.fillStyle = '#6a6a6a';
+            for (let i = 0; i < 120; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * size, Math.random() * size, 
+                    Math.random() * 12 + 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.008;
+            
+            // Fast moving camera on a journey path
+            const radius = 1500;
+            camera.position.x = Math.cos(time * 0.3) * radius + Math.sin(time * 0.15) * 500;
+            camera.position.z = Math.sin(time * 0.3) * radius + Math.cos(time * 0.2) * 600;
+            camera.position.y = Math.sin(time * 0.25) * 400 + 200;
+            
+            // Look ahead in the direction of movement
+            const lookX = Math.cos(time * 0.3 + 0.5) * radius;
+            const lookZ = Math.sin(time * 0.3 + 0.5) * radius;
+            camera.lookAt(lookX, 0, lookZ);
+            
+            // Rotate planets
+            planets.forEach((planet, i) => {
+                planet.rotation.y += 0.005 + i * 0.001;
+            });
+            
+            // Rotate asteroids
+            asteroids.forEach(ast => {
+                ast.rotation.x += 0.01;
+                ast.rotation.y += 0.005;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function handleResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        window.addEventListener('resize', handleResize);
+        handleResize();
+        animate();
+    </script>
+</body>
+</html>
