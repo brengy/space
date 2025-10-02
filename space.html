@@ -17,6 +17,9 @@
 </head>
 <body>
     <canvas id="c"></canvas>
+    <audio id="bgMusic" loop>
+        <source src="51.mp3" type="audio/mpeg">
+    </audio>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const canvas = document.getElementById('c');
@@ -206,6 +209,15 @@
         scene.add(ambientLight);
         
         let time = 0;
+        
+        // Play background music
+        const music = document.getElementById('bgMusic');
+        music.volume = 0.3;
+        // Try to autoplay, but browsers might block it until user interaction
+        music.play().catch(e => {
+            // If autoplay is blocked, play on first click
+            document.addEventListener('click', () => music.play(), { once: true });
+        });
         
         function createJupiterTexture() {
             const size = 512;
